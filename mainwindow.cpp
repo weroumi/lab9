@@ -1,6 +1,9 @@
 //checker
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
+#include <map>
+
+std::map<QString, QString> cache;
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -40,3 +43,10 @@ void MainWindow::on_cmbNumOfClients_currentTextChanged(const QString &arg1)
     }
 }
 
+DWORD WINAPI cacheThreadMain(LPVOID param){
+    while(1){
+        Sleep(5000);
+        cache.clear();
+    }
+    return 0;
+}

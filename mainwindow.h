@@ -3,6 +3,7 @@
 
 #include "qlineedit.h"
 #include <QMainWindow>
+#include <Windows.h>
 #define MAX_NUM_OF_CLIENTS 4
 
 QT_BEGIN_NAMESPACE
