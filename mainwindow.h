@@ -21,6 +21,14 @@ public:
 private slots:
     void on_cmbNumOfClients_currentTextChanged(const QString &arg1);
 
+    void on_txtDir_1_selectionChanged();
+
+    void on_txtDir_2_selectionChanged();
+
+    void on_txtDir_3_selectionChanged();
+
+    void on_txtDir_4_selectionChanged();
+
 private:
     Ui::MainWindow *ui;
     QLineEdit* txtDirectiories[MAX_NUM_OF_CLIENTS];

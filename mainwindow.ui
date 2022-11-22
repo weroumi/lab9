@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>570</width>
-    <height>183</height>
+    <height>180</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -67,24 +67,21 @@
       <x>10</x>
       <y>50</y>
       <width>551</width>
-      <height>80</height>
+      <height>105</height>
      </rect>
     </property>
     <layout class="QGridLayout" name="gridLayout">
-     <item row="1" column="2">
-      <widget class="QLineEdit" name="txtExtencion_2">
+     <item row="0" column="1">
+      <widget class="QLineEdit" name="txtDir_1">
        <property name="styleSheet">
         <string notr="true">background-color: rgb(255, 255)</string>
        </property>
       </widget>
      </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="label_3">
+     <item row="1" column="2">
+      <widget class="QLineEdit" name="txtExtencion_2">
        <property name="styleSheet">
         <string notr="true">background-color: rgb(255, 255)</string>
-       </property>
-       <property name="text">
-        <string>Extencion:</string>
        </property>
       </widget>
      </item>
@@ -112,17 +109,13 @@
        </property>
       </widget>
      </item>
-     <item row="1" column="4">
-      <widget class="QLineEdit" name="txtExtencion_4">
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_3">
        <property name="styleSheet">
         <string notr="true">background-color: rgb(255, 255)</string>
        </property>
-      </widget>
-     </item>
-     <item row="0" column="1">
-      <widget class="QLineEdit" name="txtDir_1">
-       <property name="styleSheet">
-        <string notr="true">background-color: rgb(255, 255)</string>
+       <property name="text">
+        <string>Extencion:</string>
        </property>
       </widget>
      </item>
@@ -135,6 +128,13 @@
      </item>
      <item row="0" column="3">
       <widget class="QLineEdit" name="txtDir_3">
+       <property name="styleSheet">
+        <string notr="true">background-color: rgb(255, 255)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="4">
+      <widget class="QLineEdit" name="txtExtencion_4">
        <property name="styleSheet">
         <string notr="true">background-color: rgb(255, 255)</string>
        </property>

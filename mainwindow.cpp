@@ -2,6 +2,9 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 #include <map>
+#include <QDir>
+#include <QFileDialog>
+#include <vector>
 
 std::map<QString, QString> cache;
 
@@ -49,4 +52,50 @@ DWORD WINAPI cacheThreadMain(LPVOID param){
         cache.clear();
     }
     return 0;
+}
+
+struct serverThredArgs{
+    QString dirName;
+    QString extencionFilter;
+};
+
+std::vector<serverThredArgs> params;
+
+DWORD WINAPI serverThreadMain(LPVOID param){
+    serverThredArgs* pParam = (serverThredArgs*) param;
+    QDir directory = pParam->dirName;
+    QStringList extencionFilter;
+    extencionFilter << pParam->extencionFilter;
+    QFileInfoList list =  directory.entryInfoList(extencionFilter, QDir::Files);
+    QString dirInfo = "";
+    int totalFilesSize = 0;
+    for(int i = 0; i < list.size(); ++i){
+        totalFilesSize += list[i].size();
+        dirInfo += "\n" + list[i].fileName() + "\n\tCreated: " + list[i].birthTime().toString();
+    }
+    dirInfo = "Size: " + QString::number(totalFilesSize) + " bytes" + dirInfo;
+    return 0;
+}
+
+void MainWindow::on_txtDir_1_selectionChanged()
+{
+    ui->txtDir_1->setText(QFileDialog::getExistingDirectory(this, "Select directory"));
+}
+
+
+void MainWindow::on_txtDir_2_selectionChanged()
+{
+    ui->txtDir_2->setText(QFileDialog::getExistingDirectory(this, "Select directory"));
+}
+
+
+void MainWindow::on_txtDir_3_selectionChanged()
+{
+    ui->txtDir_3->setText(QFileDialog::getExistingDirectory(this, "Select directory"));
+}
+
+
+void MainWindow::on_txtDir_4_selectionChanged()
+{
+    ui->txtDir_4->setText(QFileDialog::getExistingDirectory(this, "Select directory"));
 }
