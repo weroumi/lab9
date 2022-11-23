@@ -29,10 +29,14 @@ private slots:
 
     void on_txtDir_4_selectionChanged();
 
+    void on_btnSearch_clicked();
+
 private:
     Ui::MainWindow *ui;
     QLineEdit* txtDirectiories[MAX_NUM_OF_CLIENTS];
     QLineEdit* txtExtencions[MAX_NUM_OF_CLIENTS];
     size_t numOfClients;
+    std::vector<STARTUPINFO> si;
+    std::vector<PROCESS_INFORMATION> pi;
 };
 #endif // MAINWINDOW_H
