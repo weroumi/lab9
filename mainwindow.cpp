@@ -196,7 +196,6 @@ DWORD WINAPI InstanceThread(LPVOID lpvParam){
         }
     }
     FlushFileBuffers(hPipe);
-
     DisconnectNamedPipe(hPipe);
     CloseHandle(hPipe);
     HeapFree(hHeap, 0, pchRequest);
