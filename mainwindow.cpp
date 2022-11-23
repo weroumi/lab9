@@ -194,12 +194,6 @@ DWORD WINAPI InstanceThread(LPVOID lpvParam){
             msg.exec();
             break;
         }
-        /*if (!SetEvent(ghWriteEvent)){
-            QMessageBox msg;
-            msg.setText("ReadEvent failed (" + QString::number(GetLastError()) + ")\n");
-            msg.exec();
-            return -1;
-        }*/
     }
     FlushFileBuffers(hPipe);
 
