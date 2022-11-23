@@ -5,6 +5,10 @@
 #include <QFileDialog>
 #include <vector>
 #include <QMessageBox>
+#include <QDesktopServices>
+#include <QCoreApplication>
+#include <QUrl>
+
 
 #define BUFSIZE 512
 #define CLIENTCOUNT 4
@@ -116,7 +120,6 @@ DWORD WINAPI InstanceThread(LPVOID lpvParam){
 
         if(dwWaitResult != WAIT_OBJECT_0){
             QMessageBox msg;
-            QString sMsg = "InstanceThread: client disconnected.";
             msg.setText("Wait error (" + QString::number(GetLastError()) + ")\n");
             msg.exec();
         }
@@ -147,20 +150,37 @@ DWORD WINAPI InstanceThread(LPVOID lpvParam){
 
         // Обробка запиту
         QString QDirFilter_temp = QString::fromStdWString(pchRequest);
-        QStringList QDirFilter = QDirFilter_temp.split("*");
-        QDirFilter[1] = "*" + QDirFilter[1];
-        //ну тут короче у тебе свій код по пошуку а я просто шось присвою
-        QDir directory = QDirFilter[0];
-        QStringList extencionFilter;
-        extencionFilter << QDirFilter[1];
-        QFileInfoList list =  directory.entryInfoList(extencionFilter, QDir::Files);
         QString dirInfo = "";
-        int totalFilesSize = 0;
-        for(int i = 0; i < list.size(); ++i){
-            totalFilesSize += list[i].size();
-            dirInfo += "\n" + list[i].fileName() + "\n\tCreated: " + list[i].birthTime().toString();
+        auto it = cache.find(QDirFilter_temp);
+        if(it == cache.end()){
+            QStringList QDirFilter = QDirFilter_temp.split("*");
+            QDirFilter[1] = "*" + QDirFilter[1];
+            //ну тут короче у тебе свій код по пошуку а я просто шось присвою
+            QDir directory = QDirFilter[0];
+            QStringList extencionFilter;
+            extencionFilter << QDirFilter[1];
+            QFileInfoList list =  directory.entryInfoList(extencionFilter, QDir::Files);
+            int totalFilesSize = 0;
+            for(int i = 0; i < list.size(); ++i){
+                totalFilesSize += list[i].size();
+                dirInfo += "\n" + list[i].fileName() + "\n\tCreated: " + list[i].birthTime().toString();
+            }
+            dirInfo = "Size: " + QString::number(totalFilesSize) + " bytes" + dirInfo;
+            cache.insert({QDirFilter_temp, dirInfo});
+            QString filename = "data.txt";
+            QFile file(filename);
+            if (file.open(QFile::WriteOnly | QFile::Append)){
+                QTextStream data( &file );
+                QStringList strList;
+                strList << dirInfo;
+                data << strList.join( ";" )+"\n";
+            }
+            file.close();
+            QDesktopServices::openUrl(QString(filename).arg(QCoreApplication::applicationDirPath()));
         }
-        dirInfo = "Size: " + QString::number(totalFilesSize) + " bytes" + dirInfo;
+        else
+            dirInfo = it->second;
+
         dirInfo.toWCharArray(pchReply);
         cbReplyBytes = (lstrlen(pchReply)+1)*sizeof(TCHAR);
 
@@ -174,6 +194,12 @@ DWORD WINAPI InstanceThread(LPVOID lpvParam){
             msg.exec();
             break;
         }
+        /*if (!SetEvent(ghWriteEvent)){
+            QMessageBox msg;
+            msg.setText("ReadEvent failed (" + QString::number(GetLastError()) + ")\n");
+            msg.exec();
+            return -1;
+        }*/
     }
     FlushFileBuffers(hPipe);
 
@@ -230,9 +256,11 @@ DWORD WINAPI serverThreadMain(LPVOID param){
             }
             else CloseHandle(hThread);
          }
-         else
-         // Клієнт не може підключитись, вирубаємо пайп
-         CloseHandle(hPipe);
+        else{
+            // Клієнт не може підключитись, вирубаємо пайп
+            CloseHandle(hPipe);
+            break;
+        }
     }
     return 0;
 }
@@ -264,36 +292,47 @@ void MainWindow::on_txtDir_4_selectionChanged()
 
 void MainWindow::on_btnSearch_clicked()
 {
-    ghWriteEvent = CreateEvent(NULL, TRUE, FALSE, TEXT("WriteEvent"));
-    ghReadEvent = CreateEvent(NULL, TRUE, FALSE, TEXT("ReadEvent"));
+    try{
+        ghWriteEvent = CreateEvent(NULL, TRUE, FALSE, TEXT("WriteEvent"));
+        ghReadEvent = CreateEvent(NULL, TRUE, FALSE, TEXT("ReadEvent"));
 
-    if (ghWriteEvent == NULL || ghReadEvent == NULL){
+        if (ghWriteEvent == NULL || ghReadEvent == NULL){
+            QMessageBox msg;
+            msg.setText("CreateEvent failed (" + QString::number(GetLastError()) + ")");
+            msg.exec();
+            return;
+        }
+        CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&cacheThreadMain, NULL, 0, 0);
+        HANDLE hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&serverThreadMain, NULL, 0, 0);
+        for(int i = 0; i < numOfClients; ++i){
+            std::wstring dir = txtDirectiories[i]->text().toStdWString();
+            std::wstring extencion = txtExtencions[i]->text().toStdWString();
+            std::wstring path = L"C:\\Users\\Admin\\Documents\\Project2\\Debug\\client.exe";
+            std::wstring args = path + L" " + dir + L" " + extencion;
+            STARTUPINFO si_t;
+            PROCESS_INFORMATION pi_t;
+            si.push_back(si_t);
+            pi.push_back(pi_t);
+            ZeroMemory(&si[i], sizeof(si[i]));
+            si[i].cb = sizeof(si[i]);
+            ZeroMemory(&pi[i], sizeof(pi[i]));
+            CreateProcess(NULL,&args[0],NULL,NULL,true,CREATE_NEW_CONSOLE,NULL,NULL,&si[i],&pi[i]);
+            ghProcesses[i] = pi[i].hProcess;
+            args.clear();
+        }
+        WaitForSingleObject(hThread, 1000);
+        WaitForMultipleObjects(CLIENTCOUNT, ghProcesses, TRUE, 1000);
+        CloseHandle(hThread);
+        for(int i = 0; i < numOfClients; ++i){
+            CloseHandle(pi[i].hThread);
+            CloseHandle(pi[i].hProcess);
+        }
+        CloseHandle(ghWriteEvent);
+        CloseHandle(ghReadEvent);
+    }catch(std::exception& exc){
         QMessageBox msg;
-        msg.setText("CreateEvent failed (" + QString::number(GetLastError()) + ")");
+        msg.setText(exc.what());
         msg.exec();
-        return;
     }
-
-    HANDLE hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&serverThreadMain, NULL, 0, 0);
-    for(int i = 0; i < numOfClients; ++i){
-        std::wstring dir = txtDirectiories[i]->text().toStdWString();
-        std::wstring extencion = txtExtencions[i]->text().toStdWString();
-        std::wstring path = L"C:\\Users\\Admin\\Documents\\Project2\\Debug\\client.exe";
-        std::wstring args = path + L" " + dir + L" " + extencion;
-        STARTUPINFO si_t;
-        PROCESS_INFORMATION pi_t;
-        si.push_back(si_t);
-        pi.push_back(pi_t);
-        ZeroMemory(&si[i], sizeof(si[i]));
-        si[i].cb = sizeof(si[i]);
-        ZeroMemory(&pi[i], sizeof(pi[i]));
-        CreateProcess(NULL,&args[0],NULL,NULL,true,CREATE_NEW_CONSOLE,NULL,NULL,&si[i],&pi[i]);
-        ghProcesses[i] = pi[i].hProcess;
-    }
-    WaitForSingleObject(hThread, INFINITE);
-    WaitForMultipleObjects(CLIENTCOUNT, ghProcesses, TRUE, INFINITE);
-    CloseHandle(hThread);
-    CloseHandle(ghWriteEvent);
-    CloseHandle(ghReadEvent);
 }
 
