@@ -8,6 +8,9 @@
 
 int main(int argc, char* argv[]){
 	
+	// події створено у mainwindow.cpp
+	// EVENT_MODIFY_STATE - щоб змінювати статус за допомогою SetEvent()
+	// SYNCHRONIZE - щоб була можливість очікувати на подію
 	HANDLE ghWriteEvent = OpenEvent(EVENT_MODIFY_STATE | SYNCHRONIZE, FALSE, TEXT("WriteEvent"));
 	HANDLE ghReadEvent = OpenEvent(EVENT_MODIFY_STATE | SYNCHRONIZE, FALSE, TEXT("ReadEvent"));
 
@@ -114,11 +117,6 @@ int main(int argc, char* argv[]){
 		_tprintf(TEXT("ReadFile from pipe failed. GLE=%d\n"), GetLastError());
 		return -1;
 	}
-
-	/*if (!SetEvent(ghReadEvent)) {
-		printf("ReadEvent failed (%d)\n", GetLastError());
-		return;
-	}*/
 
 	printf("\n<End of message, press ENTER to terminate connection and exit>");
 	_getch();
