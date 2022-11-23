@@ -4,9 +4,22 @@
 #include <conio.h>
 
 #define BUFSIZE 512
-#define STDC_WANT_LIB_EXT1 1
+#define STDC_WANT_LIB_EXT11
 
 int main(int argc, char* argv[]){
+	
+	// події створено у mainwindow.cpp
+	// EVENT_MODIFY_STATE - щоб змінювати статус за допомогою SetEvent()
+	// SYNCHRONIZE - щоб була можливість очікувати на подію
+	HANDLE ghWriteEvent = OpenEvent(EVENT_MODIFY_STATE | SYNCHRONIZE, FALSE, TEXT("WriteEvent"));
+	HANDLE ghReadEvent = OpenEvent(EVENT_MODIFY_STATE | SYNCHRONIZE, FALSE, TEXT("ReadEvent"));
+
+	if (ghWriteEvent == NULL || ghReadEvent == NULL){
+		printf("OpenEvent failed (%d)\n", GetLastError());
+		return -1;
+	}
+
+
 	char* dirFilter = argv[1];
 	char* extencion = argv[2];
 	strcat_s(dirFilter, 256, extencion);
@@ -20,7 +33,7 @@ int main(int argc, char* argv[]){
 	if(argc > 1)
 		swprintf(lpvMessage, BUFSIZE, L"%hs", dirFilter);
 
-	// відкриваємо пайп, чекаємо на нього, якщо треба 
+	// відкриваємо піпе, чекаємо на нього, якщо треба 
 
 	while (1) {
 		hPipe = CreateFile(
@@ -74,7 +87,21 @@ int main(int argc, char* argv[]){
 		return -1;
 	}
 
+	// Set ghWriteEvent to signaled
+
+	if (!SetEvent(ghWriteEvent)){
+		printf("SetEvent failed (%d)\n", GetLastError());
+		return -1;
+	}
+
 	printf("\nMessage sent to server, receiving reply as follows:\n");
+
+	DWORD dwWaitResult = WaitForSingleObject(ghReadEvent, INFINITE);
+
+	if (dwWaitResult != WAIT_OBJECT_0) {
+		printf("Wait error (%d)\n", GetLastError());
+		return -1;
+	}
 
 	do{
 		// Зчитування з пайпу 

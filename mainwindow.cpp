@@ -7,10 +7,13 @@
 #include <QMessageBox>
 
 #define BUFSIZE 512
-
+#define CLIENTCOUNT 4
 
 std::map<QString, QString> cache;
 HANDLE pipeServer;
+HANDLE ghWriteEvent;
+HANDLE ghReadEvent;
+HANDLE ghProcesses[CLIENTCOUNT];
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -108,6 +111,15 @@ DWORD WINAPI InstanceThread(LPVOID lpvParam){
 
     // Зациклуємось, доки не буде завершено читання
     while(1){
+
+        DWORD dwWaitResult = WaitForSingleObject(ghWriteEvent, INFINITE);
+
+        if(dwWaitResult != WAIT_OBJECT_0){
+            QMessageBox msg;
+            QString sMsg = "InstanceThread: client disconnected.";
+            msg.setText("Wait error (" + QString::number(GetLastError()) + ")\n");
+            msg.exec();
+        }
         // Читання запиту клієнта з пайпу. Максимальна довжина запиту = BUFSIZE (на разі 512).
         fSuccess = ReadFile(hPipe, pchRequest, BUFSIZE*sizeof(TCHAR), &cbBytesRead, NULL);
         if (!fSuccess || cbBytesRead == 0){
@@ -125,6 +137,13 @@ DWORD WINAPI InstanceThread(LPVOID lpvParam){
             }
             break;
          }
+
+        if (!SetEvent(ghReadEvent)){
+            QMessageBox msg;
+            msg.setText("ReadEvent failed (" + QString::number(GetLastError()) + ")\n");
+            msg.exec();
+            return -1;
+        }
 
         // Обробка запиту
         QString QDirFilter_temp = QString::fromStdWString(pchRequest);
@@ -156,8 +175,6 @@ DWORD WINAPI InstanceThread(LPVOID lpvParam){
             break;
         }
     }
-
-    // треба флаш буфер піпу, щоб усі дані були записані у файл і нормально зчитані клієнтом
     FlushFileBuffers(hPipe);
 
     DisconnectNamedPipe(hPipe);
@@ -247,6 +264,16 @@ void MainWindow::on_txtDir_4_selectionChanged()
 
 void MainWindow::on_btnSearch_clicked()
 {
+    ghWriteEvent = CreateEvent(NULL, TRUE, FALSE, TEXT("WriteEvent"));
+    ghReadEvent = CreateEvent(NULL, TRUE, FALSE, TEXT("ReadEvent"));
+
+    if (ghWriteEvent == NULL || ghReadEvent == NULL){
+        QMessageBox msg;
+        msg.setText("CreateEvent failed (" + QString::number(GetLastError()) + ")");
+        msg.exec();
+        return;
+    }
+
     HANDLE hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&serverThreadMain, NULL, 0, 0);
     for(int i = 0; i < numOfClients; ++i){
         std::wstring dir = txtDirectiories[i]->text().toStdWString();
@@ -261,8 +288,12 @@ void MainWindow::on_btnSearch_clicked()
         si[i].cb = sizeof(si[i]);
         ZeroMemory(&pi[i], sizeof(pi[i]));
         CreateProcess(NULL,&args[0],NULL,NULL,true,CREATE_NEW_CONSOLE,NULL,NULL,&si[i],&pi[i]);
+        ghProcesses[i] = pi[i].hProcess;
     }
     WaitForSingleObject(hThread, INFINITE);
+    WaitForMultipleObjects(CLIENTCOUNT, ghProcesses, TRUE, INFINITE);
     CloseHandle(hThread);
+    CloseHandle(ghWriteEvent);
+    CloseHandle(ghReadEvent);
 }
 
