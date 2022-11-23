@@ -70,8 +70,7 @@ DWORD WINAPI InstanceThread(LPVOID lpvParam){
 
     // Додаткові перевірочки, бо потік запуститься, навіть, якщо буде помилка з пайпами
 
-    if (lpvParam == NULL)
-    {
+    if (lpvParam == NULL){
         QString sMsg = "ERROR - Pipe Server Failure: \n";
         sMsg += "   InstanceThread got an unexpected NULL value in lpvParam.\n";
         sMsg += "   InstanceThread exitting.\n";
@@ -83,8 +82,7 @@ DWORD WINAPI InstanceThread(LPVOID lpvParam){
         return (DWORD)-1;
     }
 
-    if (pchRequest == NULL)
-    {
+    if (pchRequest == NULL){
         QString sMsg = "\nERROR - Pipe Server Failure:\n";
         sMsg += "   InstanceThread got an unexpected NULL heap allocation.\n";
         sMsg += "   InstanceThread exitting.\n";
@@ -95,8 +93,7 @@ DWORD WINAPI InstanceThread(LPVOID lpvParam){
         return (DWORD)-1;
     }
 
-    if (pchReply == NULL)
-    {
+    if (pchReply == NULL){
         QString sMsg = "\nERROR - Pipe Server Failure:\n";
         sMsg += "   InstanceThread got an unexpected NULL heap allocation.\n";
         sMsg += "   InstanceThread exitting.\n";
@@ -113,17 +110,14 @@ DWORD WINAPI InstanceThread(LPVOID lpvParam){
     while(1){
         // Читання запиту клієнта з пайпу. Максимальна довжина запиту = BUFSIZE (на разі 512).
         fSuccess = ReadFile(hPipe, pchRequest, BUFSIZE*sizeof(TCHAR), &cbBytesRead, NULL);
-        if (!fSuccess || cbBytesRead == 0)
-        {
-            if (GetLastError() == ERROR_BROKEN_PIPE)
-            {
+        if (!fSuccess || cbBytesRead == 0){
+            if (GetLastError() == ERROR_BROKEN_PIPE){
                 QMessageBox msg;
                 QString sMsg = "InstanceThread: client disconnected.";
                 msg.setText(sMsg);
                 msg.exec();
             }
-            else
-            {
+            else{
                 QMessageBox msg;
                 QString sMsg = "InstanceThread ReadFile failed, GLE=" + QString::number(GetLastError());
                 msg.setText(sMsg);
@@ -154,8 +148,7 @@ DWORD WINAPI InstanceThread(LPVOID lpvParam){
         // Надсилаємо відповідь клієнту через піпе
         fSuccess = WriteFile(hPipe, pchReply, cbReplyBytes, &cbWritten, NULL);
 
-        if (!fSuccess || cbReplyBytes != cbWritten)
-        {
+        if (!fSuccess || cbReplyBytes != cbWritten){
             QMessageBox msg;
             QString sMsg = "InstanceThread ReadFile failed, GLE=" + QString::number(GetLastError());
             msg.setText(sMsg);
@@ -184,8 +177,7 @@ DWORD WINAPI serverThreadMain(LPVOID param){
     // цикл створює екземпляр піпу і чекає коли підключиться клієнт
     // після підкл. клієнта створюємо потік що забезпечує комунікацію
     // таким чином, якщо буде кілька клієнтів - сервер зможе їх також "обслужити"
-    for (;;)
-    {
+    for (;;){
         hPipe = CreateNamedPipe(
          lpszPipename,             // ім'я піпу
          PIPE_ACCESS_DUPLEX,       // read/write access
@@ -198,8 +190,7 @@ DWORD WINAPI serverThreadMain(LPVOID param){
          0,                        // client time-out
          NULL);                    // default security attribute
 
-        if (hPipe == INVALID_HANDLE_VALUE)
-        {
+        if (hPipe == INVALID_HANDLE_VALUE){
             QMessageBox msg;
             QString sMsg = "CreateNamedPipe failed, GLE=" + QString::number(GetLastError());
             msg.setText(sMsg);
@@ -210,12 +201,10 @@ DWORD WINAPI serverThreadMain(LPVOID param){
         // чекаємо коли під'єднається клієнт
         fConnected = ConnectNamedPipe(hPipe, NULL) ? TRUE : (GetLastError() == ERROR_PIPE_CONNECTED);
 
-        if (fConnected)
-        {
+        if (fConnected){
         // створюємо потік спеціально для обробки запиту цього клієнта
             hThread = CreateThread(NULL, 0, InstanceThread, (LPVOID) hPipe, 0, &dwThreadId);
-            if (hThread == NULL)
-            {
+            if (hThread == NULL){
                 QMessageBox msg;
                 QString sMsg = "CreateThread failed, GLE=" + QString::number(GetLastError());
                 msg.setText(sMsg);
